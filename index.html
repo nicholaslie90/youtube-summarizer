@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YouTube Summarizer</title>
+<script>try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,21 +13,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <style>
   :root {
-    --paper: #f7f4ee; --surface: #fffdf9; --ink: #1d1a16; --ink-2: #5b554c; --ink-3: #8a8378;
-    --rule: #e4ddd1; --accent: #c4321f; --accent-ink: #fff; --chip-bg: #f3e4dc; --chip-ink: #9b2617;
-    --band: #efe9df; --shadow: 0 1px 2px rgb(58 42 26 / .06), 0 8px 24px -8px rgb(58 42 26 / .18);
+    color-scheme: light dark;
+    --paper: light-dark(#f7f4ee, #141311); --surface: light-dark(#fffdf9, #1c1a17);
+    --ink: light-dark(#1d1a16, #ece7de); --ink-2: light-dark(#5b554c, #ada597); --ink-3: light-dark(#8a8378, #7f786d);
+    --rule: light-dark(#e4ddd1, #2e2a25); --accent: light-dark(#c4321f, #ff6a52); --accent-ink: light-dark(#fff, #1a0b08);
+    --chip-bg: light-dark(#f3e4dc, #33201b); --chip-ink: light-dark(#9b2617, #ff9a87); --band: light-dark(#efe9df, #1f1c19);
+    --shadow: 0 1px 2px light-dark(rgb(58 42 26 / .06), rgb(0 0 0 / .3)), 0 8px 24px -8px light-dark(rgb(58 42 26 / .18), rgb(0 0 0 / .6));
     --serif: "Newsreader", Georgia, serif; --sans: "Schibsted Grotesk", -apple-system, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, monospace;
     --ease: cubic-bezier(.16, 1, .3, 1);
-    color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #141311; --surface: #1c1a17; --ink: #ece7de; --ink-2: #ada597; --ink-3: #7f786d;
-      --rule: #2e2a25; --accent: #ff6a52; --accent-ink: #1a0b08; --chip-bg: #33201b; --chip-ink: #ff9a87;
-      --band: #1f1c19; --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -8px rgb(0 0 0 / .6);
-      color-scheme: dark;
-    }
-  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
   * { box-sizing: border-box; }
   html { scrollbar-color: var(--rule) transparent; scroll-padding-top: 24px; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans);
@@ -37,6 +34,13 @@
   svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75;
           stroke-linecap: round; stroke-linejoin: round; }
   [hidden] { display: none !important; }
+
+  .theme { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+  .theme button { display: grid; place-items: center; width: 30px; height: 28px; border: 0; border-radius: 7px;
+                  background: none; color: var(--ink-3); cursor: pointer; transition: background .15s, color .15s; }
+  .theme button:hover { color: var(--ink); }
+  .theme button[aria-checked="true"] { background: var(--band); color: var(--ink); }
+  body.empty .theme { position: absolute; top: 20px; right: 16px; }
 
   /* ---------- top bar / empty state ---------- */
   .bar { max-width: 1180px; margin: 0 auto; padding: 20px 16px; display: flex; align-items: center; gap: 20px; }
@@ -159,6 +163,11 @@
     <input id="url" type="url" placeholder="Paste a YouTube link…" aria-label="YouTube link" required autofocus>
     <button class="btn primary" id="go">Summarize</button>
   </form>
+  <div class="theme" role="radiogroup" aria-label="Theme">
+    <button role="radio" data-theme="light" aria-label="Light" title="Light"><svg class="i"><use href="#i-sun"/></svg></button>
+    <button role="radio" data-theme="dark" aria-label="Dark" title="Dark"><svg class="i"><use href="#i-moon"/></svg></button>
+    <button role="radio" data-theme="system" aria-label="System" title="System"><svg class="i"><use href="#i-system"/></svg></button>
+  </div>
   <div class="note" id="note" role="status"></div>
 </header>
 
@@ -187,6 +196,9 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5m0 3.2v.1"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 2.5 2.5M14 9l2 2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2m0 15v2M4.6 4.6l1.4 1.4m12 12 1.4 1.4M2.5 12h2m15 0h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-system" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></symbol>
   <symbol id="i-spin" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
 </svg>
 
@@ -360,6 +372,15 @@ document.addEventListener("click", e => {
     setTimeout(() => { b.querySelector("use").setAttribute("href", "#i-copy"); b.querySelector("span").textContent = "Copy summary"; }, 1400);
   }
 });
+
+function setTheme(t) {
+  if (t === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch {}
+  document.querySelectorAll(".theme button").forEach(b => b.setAttribute("aria-checked", b.dataset.theme === t));
+}
+document.querySelectorAll(".theme button").forEach(b => b.onclick = () => setTheme(b.dataset.theme));
+setTheme(document.documentElement.dataset.theme || "system");
 
 window.addEventListener("focus", checkKey);
 checkKey();
