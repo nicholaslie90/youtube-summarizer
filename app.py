@@ -51,6 +51,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, FAVICON.read_bytes(), "image/svg+xml")
         elif self.path == "/health":
             self.send(200, b"ok", "text/plain")
+        elif self.path == "/api/languages":
+            self.send(200, summarize.LANGUAGES)
         elif self.path == "/api/key":
             self.send(200, {"source": api_key()[1]})
         else:
@@ -60,13 +62,15 @@ class Handler(BaseHTTPRequestHandler):
         if not self.trusted() or self.headers.get("Content-Type") != "application/json":
             return self.send(403, {"error": "forbidden"})
         try:
-            body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 10_000)))
+            body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 500_000)))
         except ValueError:
             return self.send(400, {"error": "bad request"})
         if self.path == "/api/transcript":
             self.transcript(str(body.get("url", "")).strip())
         elif self.path == "/api/summary":
-            self.summary(str(body.get("id", "")))
+            self.summary(str(body.get("id", "")), str(body.get("lang", "en")))
+        elif self.path == "/api/translate":
+            self.translate(str(body.get("markdown", "")), str(body.get("lang", "")))
         else:
             self.send(404, {"error": "not found"})
 
@@ -88,22 +92,32 @@ class Handler(BaseHTTPRequestHandler):
             "header": videos[vid][1], "markdown": videos[vid][1] + videos[vid][2],
         })
 
-    def summary(self, vid):
-        if vid not in videos:
-            return self.send(404, {"error": "Fetch the transcript first."})
+    def summary(self, vid, lang):
+        if lang not in summarize.LANGUAGES:
+            return self.send(400, {"error": "Unknown language."})
+        if vid not in videos:  # e.g. app restarted; the page falls back to /api/translate
+            return self.send(404, {"error": "Transcript is no longer loaded. Summarize the video again."})
+        info, _, transcript = videos[vid]
+        self.stream(lambda key: summarize.stream_summary(info, transcript, key, summarize.LANGUAGES[lang]))
+
+    def translate(self, markdown, lang):
+        if lang not in summarize.LANGUAGES or not markdown.strip():
+            return self.send(400, {"error": "Nothing to translate."})
+        self.stream(lambda key: summarize.stream_translation(markdown, key, summarize.LANGUAGES[lang]))
+
+    def stream(self, make):
         key, _ = api_key()
         if not key:
             return self.send(401, {"error": "No API key. Copy your Anthropic API key (sk-ant-…) to the clipboard, then try again."})
-        info, _, transcript = videos[vid]
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.end_headers()  # no Content-Length: body streams until the connection closes
         try:
-            for chunk in summarize.stream_summary(info, transcript, key):
+            for chunk in make(key):
                 self.wfile.write(chunk.encode())
                 self.wfile.flush()
-        except BrokenPipeError:
-            pass  # browser tab closed
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # tab closed or language switched mid-stream; closing the generator stops the API call
         except Exception as e:  # API errors (bad key, rate limit…) surface in the page
             self.wfile.write(f"\n\n**Error:** {getattr(e, 'message', None) or e}".encode())
 

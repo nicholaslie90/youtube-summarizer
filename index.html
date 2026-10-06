@@ -61,6 +61,15 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); padding: 10px 18px; font-weight: 600; }
   .btn.primary:hover { filter: brightness(1.06); }
   .btn:disabled { opacity: .55; cursor: default; transform: none; }
+  .lang { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--ink-2);
+          background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; transition: border-color .15s; }
+  .lang:hover, .lang:focus-within { border-color: var(--ink-3); }
+  .lang select { appearance: none; border: 0; background: none; color: var(--ink); font: 500 14px/1 var(--sans);
+                 padding: 10px 14px 10px 0; cursor: pointer; max-width: 11em; }
+  .lang select:focus { outline: none; }
+  .lang::after { content: ""; position: absolute; right: 11px; top: 50%; width: 5px; height: 5px; margin-top: -4px;
+                 border: solid var(--ink-3); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); pointer-events: none; }
+  @media (max-width: 560px) { form { flex-wrap: wrap; } form input { flex-basis: 100%; } .lang { flex: 1; } }
 
   body.empty .bar { flex-direction: column; justify-content: center; min-height: 88vh; gap: 28px; text-align: center; }
   body.empty .brand { flex-direction: column; gap: 18px; font-size: clamp(2.25rem, 5.5vw, 3.1rem); letter-spacing: -.025em; }
@@ -113,12 +122,14 @@
   #summary p { margin: 0 0 1em; }
   #summary strong { font-weight: 600; }
   #summary section { padding-top: 8px; }
+  #summary h2, #summary h3 { scroll-margin-top: 28px; }
+  #summary h2:focus, #summary h3:focus { outline: none; }  /* focus moves here from the outline; the scroll shows where */
   #summary h2 { font: 500 1.6rem/1.2 var(--serif); letter-spacing: -.015em; margin: 52px 0 18px; text-wrap: balance; }
   #summary h3 { font: 600 1.22rem/1.3 var(--serif); margin: 36px 0 10px; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
-  #summary ul, #summary ol { margin: 0 0 1em; padding-left: 1.2em; }
-  #summary li { margin: 0 0 .5em; padding-left: .2em; }
+  #summary ul, #summary ol { margin: 0 0 1em; padding-inline-start: 1.2em; }
+  #summary li { margin: 0 0 .5em; padding-inline-start: .2em; }
   #summary li::marker { color: var(--ink-3); }
-  #summary blockquote { margin: 1.2em 0; padding: 0 0 0 1em; border-left: 1px solid var(--rule); color: var(--ink-2); font-style: italic; }
+  #summary blockquote { margin: 1.2em 0; padding-inline-start: 1em; border-inline-start: 1px solid var(--rule); color: var(--ink-2); font-style: italic; }
   #summary a:not(.ts) { color: var(--accent); }
 
   .ts { display: inline-flex; align-items: center; gap: 4px; font: 500 12.5px/1 var(--mono); font-variant-numeric: tabular-nums;
@@ -140,8 +151,8 @@
 
   /* Quotes */
   #summary [data-kind^="notable"] ul { list-style: none; padding: 0; }
-  #summary [data-kind^="notable"] li { font: italic 400 1.4rem/1.45 var(--serif); margin: 0 0 28px; padding: 0 0 0 1.6rem; position: relative; text-wrap: pretty; }
-  #summary [data-kind^="notable"] li::before { content: "\201C"; position: absolute; left: -.1rem; top: -.35rem;
+  #summary [data-kind^="notable"] li { font: italic 400 1.4rem/1.45 var(--serif); margin: 0 0 28px; padding-inline-start: 1.6rem; position: relative; text-wrap: pretty; }
+  #summary [data-kind^="notable"] li::before { content: "\201C"; position: absolute; inset-inline-start: -.1rem; top: -.35rem;
                                                font: 500 3rem/1 var(--serif); color: var(--accent); }
   #summary [data-kind^="notable"] li .ts { display: flex; width: fit-content; margin-top: 10px; font-style: normal; }
 
@@ -151,7 +162,7 @@
   #summary [data-kind^="takeaway"] li::marker { color: var(--accent); }
 
   #summary.writing > section:last-child > :last-child::after {
-    content: ""; display: inline-block; width: .5em; height: 1.05em; margin-left: 3px; vertical-align: -.15em;
+    content: ""; display: inline-block; width: .5em; height: 1.05em; margin-inline-start: 3px; vertical-align: -.15em;
     background: var(--accent); border-radius: 1px; animation: blink 1s steps(2) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -163,6 +174,8 @@
   <p class="tagline">Paste a link. Read the whole video in minutes.</p>
   <form id="form">
     <input id="url" type="url" placeholder="Paste a YouTube link…" aria-label="YouTube link" required autofocus>
+    <label class="lang" title="Summary language"><svg class="i"><use href="#i-globe"/></svg>
+      <select id="lang" aria-label="Summary language"><option value="en">English</option></select></label>
     <button class="btn primary" id="go">Summarize</button>
   </form>
   <div class="theme" role="radiogroup" aria-label="Theme">
@@ -201,6 +214,7 @@
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2m0 15v2M4.6 4.6l1.4 1.4m12 12 1.4 1.4M2.5 12h2m15 0h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
   <symbol id="i-system" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></symbol>
   <symbol id="i-spin" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
 </svg>
 
@@ -208,9 +222,13 @@
 const $ = id => document.getElementById(id);
 const md = { summary: "" };
 const TS = /^(?:\d+:)?\d{1,2}:\d{2}$/;
+const KINDS = ["tl", "key", "detailed", "notable", "takeaway"];
+const clean = text => text.replace(/^\s*<document>\s*/, "").replace(/\s*<\/document>\s*$/, "");
+const OPEN_Q = /^\s*["“„«「『‘]/;
 const PLAY = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.6v6.8L8.4 5z"/></svg>';
 const icon = name => `<svg class="i${name === "spin" ? " spin" : ""}"><use href="#i-${name}"/></svg>`;
-let video = null, keySource = null, spy = null;
+let video = null, keySource = null, loading = false, inflight = null;
+let cache = {};  // lang -> finished summary for the current video
 
 function note(text, kind = "") {
   const n = $("note");
@@ -234,7 +252,7 @@ const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, 
 
 function render() {
   const tmp = document.createElement("div");
-  tmp.innerHTML = DOMPurify.sanitize(marked.parse(linkTimestamps(md.summary)));
+  tmp.innerHTML = DOMPurify.sanitize(marked.parse(linkTimestamps(clean(md.summary))));
   tmp.querySelectorAll("a").forEach(a => {
     a.target = "_blank"; a.rel = "noopener";
     if (TS.test(a.textContent.trim())) { a.className = "ts"; a.insertAdjacentHTML("afterbegin", PLAY); a.title = "Play from here"; }
@@ -251,22 +269,29 @@ function render() {
     li.classList.add("lead");
   });
   const frag = document.createDocumentFragment();
-  let sec = null;
+  let sec = null, n = 0;
   for (const node of [...tmp.childNodes]) {
     if (node.nodeName === "H2" || !sec) {
       sec = document.createElement("section");
-      sec.dataset.kind = node.nodeName === "H2" ? slug(node.textContent) : "intro";
+      sec.dataset.kind = KINDS[n++] ?? "extra";  // text before the first heading is a TL;DR missing its heading
       frag.append(sec);
     }
     sec.append(node);
   }
-  frag.querySelectorAll('[data-kind^="notable"] li').forEach(li => {  // the design draws its own opening mark
+  // the prompt fixes the order; only "notable quotes" is optional, so tell it apart from takeaways by its content
+  const fourth = frag.querySelector('[data-kind="notable"]');
+  if (fourth) {
+    const items = [...fourth.querySelectorAll("li")];
+    const quoted = items.filter(li => OPEN_Q.test(li.textContent)).length;
+    if (items.length && quoted < items.length / 2) fourth.dataset.kind = "takeaway";
+  }
+  frag.querySelectorAll('[data-kind="notable"] li').forEach(li => {  // the design draws its own opening mark
     const texts = [...li.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
-    if (texts[0]) texts[0].textContent = texts[0].textContent.replace(/^\s*["“]/, "");
+    if (texts[0]) texts[0].textContent = texts[0].textContent.replace(OPEN_Q, "");
     const last = texts.at(-1);
-    if (last) last.textContent = last.textContent.replace(/["”]\s*$/, "");
+    if (last) last.textContent = last.textContent.replace(/["”»」』’]\s*$/, "");
   });
-  frag.querySelectorAll("h2, h3").forEach((h, i) => h.id = `s${i}-${slug(h.textContent).slice(0, 40)}`);
+  frag.querySelectorAll("h2, h3").forEach((h, i) => { h.id = `s${i}-${slug(h.textContent).slice(0, 40)}`; h.tabIndex = -1; });
   $("summary").replaceChildren(frag);
   buildToc();
 }
@@ -281,21 +306,46 @@ function buildToc() {
   }));
 }
 
-function watchToc() {
-  spy?.disconnect();
-  const links = new Map([...$("toc").children].map(a => [a.hash.slice(1), a]));
-  spy = new IntersectionObserver(entries => {
-    const hit = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-    if (!hit) return;
-    links.forEach(a => a.classList.remove("on"));
-    links.get(hit.target.id)?.classList.add("on");
-  }, { rootMargin: "0px 0px -70% 0px" });
-  $("summary").querySelectorAll("h2, h3").forEach(h => spy.observe(h));
+// Outline highlight follows the last heading above 30% of the viewport. After a click the clicked entry stays
+// highlighted until the reader scrolls again, even when the page can't scroll that heading to the top.
+let tocLock = 0, pinned = null, pinnedAt = 0, spyQueued = false;
+function highlight(id) {
+  [...$("toc").children].forEach(a => a.classList.toggle("on", a.hash.slice(1) === id));
 }
+function spyUpdate() {
+  if (Date.now() < tocLock) return;
+  if (pinned && Math.abs(scrollY - pinnedAt) < 4) return highlight(pinned);
+  pinned = null;
+  const heads = $("summary").querySelectorAll("h2, h3");
+  if (!heads.length) return;
+  let current = heads[0];
+  for (const h of heads) { if (h.getBoundingClientRect().top > innerHeight * .3) break; current = h; }
+  highlight(current.id);
+}
+addEventListener("scroll", () => {
+  if (!spyQueued) { spyQueued = true; requestAnimationFrame(() => { spyQueued = false; spyUpdate(); }); }
+}, { passive: true });
 
-async function post(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Request failed (HTTP ${r.status}).`);
+$("toc").onclick = e => {
+  const a = e.target.closest("a");
+  if (!a) return;
+  e.preventDefault();
+  const target = document.getElementById(a.hash.slice(1));
+  if (!target) return;
+  highlight(pinned = target.id);
+  pinnedAt = scrollY;
+  const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  tocLock = Date.now() + (smooth ? 1500 : 100);  // don't track the headings the jump scrolls past
+  addEventListener("scrollend", () => { tocLock = 0; pinnedAt = scrollY; }, { once: true });
+  target.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+  target.focus({ preventScroll: true });
+};
+
+const watchToc = () => { pinned = null; spyUpdate(); };
+
+async function post(path, body, signal) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
+  if (!r.ok) throw Object.assign(new Error((await r.json().catch(() => ({}))).error || `Request failed (HTTP ${r.status}).`), { status: r.status });
   return r;
 }
 
@@ -305,11 +355,13 @@ function setDone(done) {
 
 $("form").onsubmit = async e => {
   e.preventDefault();
-  $("go").disabled = true;
+  inflight?.abort();
+  $("go").disabled = loading = true;
   setDone(false);
   try {
     note("Fetching captions…", "busy");
     video = await (await post("/api/transcript", { url: $("url").value.trim() })).json();
+    cache = {};
     document.body.classList.remove("empty");
     $("title").textContent = video.title;
     $("by").textContent = `${video.channel} · captions: ${video.captions}`;
@@ -319,15 +371,45 @@ $("form").onsubmit = async e => {
     if (video.thumbnail) $("thumb").prepend(Object.assign(new Image(), { src: video.thumbnail, alt: "", referrerPolicy: "no-referrer" }));
     $("thumb").hidden = !video.thumbnail;
     document.title = `${video.title} · YouTube Summarizer`;
-    md.summary = "";
-    $("summary").replaceChildren();
-    $("toc").replaceChildren();
     const head = document.querySelector(".head");
     head.classList.remove("reveal"); void head.offsetWidth; head.classList.add("reveal");
     $("result").hidden = false;
+  } catch (err) {
+    note(err.message, "error");
+    checkKey();
+    return;
+  } finally {
+    $("go").disabled = loading = false;
+  }
+  summarize($("lang").value);
+};
 
-    note("Writing summary… long videos take a minute or two.", "busy");
-    const r = await post("/api/summary", { id: video.id });
+async function summarize(lang) {
+  inflight?.abort();
+  const ctl = inflight = new AbortController();
+  const name = langName(lang);
+  Object.assign($("summary"), { lang, dir: lang === "ar" ? "rtl" : "ltr" });
+  setDone(false);
+  if (cache[lang]) {
+    md.summary = cache[lang];
+    render(); watchToc(); setDone(true); note("");
+    return;
+  }
+  md.summary = "";
+  $("summary").replaceChildren();
+  $("toc").replaceChildren();
+  try {
+    let r;
+    note(`Writing the summary in ${name}… long videos take a minute or two.`, "busy");
+    try {
+      r = await post("/api/summary", { id: video.id, lang }, ctl.signal);
+    } catch (err) {
+      // transcript gone (app restarted): translate a summary we already have instead
+      const source = err.status === 404 && Object.values(cache)[0];
+      if (!source) throw err;
+      note(`Translating the existing summary into ${name}…`, "busy");
+      r = await post("/api/translate", { markdown: source, lang }, ctl.signal);
+    }
     checkKey();
     $("summary").classList.add("writing");
     const reader = r.body.getReader(), dec = new TextDecoder();
@@ -336,22 +418,41 @@ $("form").onsubmit = async e => {
       const { done, value } = await reader.read();
       if (done) break;
       md.summary += dec.decode(value, { stream: true });
-      if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; render(); }); }
+      if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; if (inflight === ctl) render(); }); }
     }
     $("summary").classList.remove("writing");
     render();
     watchToc();
     const failed = md.summary.includes("**Error:**");
+    if (!failed) cache[lang] = md.summary = clean(md.summary);
     note(failed ? "The summary stopped early. See the error at the end." : "", failed ? "error" : "");
     setDone(!failed);
   } catch (err) {
+    if (ctl.signal.aborted) return;  // superseded by a newer request
     $("summary").classList.remove("writing");
     note(err.message, "error");
     checkKey();
-  } finally {
-    $("go").disabled = false;
   }
+}
+
+const LABELS = { id: "Bahasa Indonesia", ms: "Bahasa Melayu" };  // Intl names these just "Indonesia" / "Melayu"
+const langName = code => { try { return LABELS[code] || new Intl.DisplayNames([code], { type: "language" }).of(code); } catch { return code; } };
+
+async function loadLanguages() {
+  const langs = await (await fetch("/api/languages")).json();
+  let saved = "en";
+  try { saved = localStorage.getItem("lang") || "en"; } catch {}
+  $("lang").replaceChildren(...Object.keys(langs).map(code => {
+    const name = langName(code);
+    return new Option(name.charAt(0).toLocaleUpperCase(code) + name.slice(1), code, false, code === saved);
+  }));
+}
+
+$("lang").onchange = () => {
+  try { localStorage.setItem("lang", $("lang").value); } catch {}
+  if (video && !loading) summarize($("lang").value);
 };
+loadLanguages();
 
 function download(name, text) {
   const a = Object.assign(document.createElement("a"), {
@@ -366,7 +467,7 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]");
   if (!b || !video) return;
   if (b.dataset.act === "transcript") download("transcript", video.markdown);
-  if (b.dataset.act === "download") download("summary", video.header + md.summary);
+  if (b.dataset.act === "download") download($("lang").value === "en" ? "summary" : `summary (${$("lang").value})`, video.header + md.summary);
   if (b.dataset.act === "copy") {
     navigator.clipboard.writeText(md.summary);
     b.querySelector("use").setAttribute("href", "#i-check");
