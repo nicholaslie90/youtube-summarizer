@@ -44,7 +44,9 @@
 
   /* ---------- top bar / empty state ---------- */
   .bar { max-width: 1180px; margin: 0 auto; padding: 20px 16px; display: flex; align-items: center; gap: 20px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .brand { display: flex; align-items: center; gap: 10px; white-space: nowrap;
+           font: 500 1.3rem/1 var(--serif); letter-spacing: -.015em; }
+  .brand em { font-weight: 400; color: var(--accent); }
   .brand img { width: 28px; height: 28px; }
   form { flex: 1; display: flex; gap: 8px; max-width: 640px; margin-left: auto; }
   input { flex: 1; min-width: 0; padding: 10px 14px; font: inherit; color: inherit; background: var(--surface);
@@ -61,7 +63,7 @@
   .btn:disabled { opacity: .55; cursor: default; transform: none; }
 
   body.empty .bar { flex-direction: column; justify-content: center; min-height: 88vh; gap: 28px; text-align: center; }
-  body.empty .brand { flex-direction: column; gap: 18px; font: 500 clamp(2rem, 5vw, 2.75rem)/1.1 var(--serif); letter-spacing: -.02em; }
+  body.empty .brand { flex-direction: column; gap: 18px; font-size: clamp(2.25rem, 5.5vw, 3.1rem); letter-spacing: -.025em; }
   body.empty .brand img { width: 88px; height: 88px; }
   body.empty .tagline { display: block; }
   body.empty .bar { flex-wrap: nowrap; }
@@ -157,7 +159,7 @@
 </head>
 <body class="empty">
 <header class="bar">
-  <div class="brand"><img src="/favicon.svg" alt="">YouTube Summarizer</div>
+  <div class="brand"><img src="/favicon.svg" alt=""><span>YouTube <em>Summarizer</em></span></div>
   <p class="tagline">Paste a link. Read the whole video in minutes.</p>
   <form id="form">
     <input id="url" type="url" placeholder="Paste a YouTube link…" aria-label="YouTube link" required autofocus>
