@@ -27,7 +27,11 @@ for n in 16 32 128 256 512; do
 	rsvg-convert -w $((n*2)) -h $((n*2)) "$DIR/icon.svg" -o "$SET/icon_${n}x${n}@2x.png"
 done
 iconutil -c icns "$SET" -o "$APP/Contents/Resources/applet.icns"
+# osacompile also ships Assets.car with the stock script icon, and CFBundleIconName makes macOS prefer it
+rm -f "$APP/Contents/Resources/Assets.car"
+/usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$APP/Contents/Info.plist" 2>/dev/null || true
 rm -rf "$(dirname "$SET")"
 codesign --force --sign - "$APP" 2>/dev/null  # resources changed; re-seal the ad-hoc signature
 touch "$APP"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"  # refresh icon cache
 echo "Installed: $APP"

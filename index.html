@@ -25,7 +25,7 @@
   :root[data-theme="light"] { color-scheme: light; }
   :root[data-theme="dark"] { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html { scrollbar-color: var(--rule) transparent; scroll-padding-top: 24px; }
+  html { scrollbar-color: var(--rule) transparent; scroll-padding-top: calc(var(--bar-h, 0px) + 28px); }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans);
          -webkit-font-smoothing: antialiased; caret-color: var(--accent); }
   ::selection { background: var(--chip-bg); color: var(--chip-ink); }
@@ -43,6 +43,8 @@
   body.empty .theme { position: absolute; top: 20px; right: 16px; }
 
   /* ---------- top bar / empty state ---------- */
+  body:not(.empty) .top { position: sticky; top: 0; z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
+  body:not(.empty) .bar { padding-block: 14px; }
   .bar { max-width: 1180px; margin: 0 auto; padding: 20px 16px; display: flex; align-items: center; gap: 20px; }
   .brand { display: flex; align-items: center; gap: 10px; white-space: nowrap;
            font: 500 1.3rem/1 var(--serif); letter-spacing: -.015em; }
@@ -94,7 +96,8 @@
           grid-template-columns: 210px minmax(0, 70ch); gap: 64px; justify-content: center; }
   @media (max-width: 1000px) { .wrap { grid-template-columns: minmax(0, 70ch); } .toc { display: none; } }
 
-  .toc { position: sticky; top: 28px; align-self: start; font-size: 13px; padding-top: 6px; }
+  .toc { position: sticky; top: calc(var(--bar-h, 0px) + 28px); align-self: start; font-size: 13px; padding-top: 6px;
+         max-height: calc(100vh - var(--bar-h, 0px) - 56px); overflow-y: auto; scrollbar-width: thin; }
   .toc a { display: block; text-decoration: none; color: var(--ink-3); padding: 5px 0 5px 12px;
            border-left: 1px solid var(--rule); transition: color .2s, border-color .2s; line-height: 1.35; }
   .toc a.sub { padding-left: 24px; font-size: 12.5px; }
@@ -122,7 +125,6 @@
   #summary p { margin: 0 0 1em; }
   #summary strong { font-weight: 600; }
   #summary section { padding-top: 8px; }
-  #summary h2, #summary h3 { scroll-margin-top: 28px; }
   #summary h2:focus, #summary h3:focus { outline: none; }  /* focus moves here from the outline; the scroll shows where */
   #summary h2 { font: 500 1.6rem/1.2 var(--serif); letter-spacing: -.015em; margin: 52px 0 18px; text-wrap: balance; }
   #summary h3 { font: 600 1.22rem/1.3 var(--serif); margin: 36px 0 10px; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
@@ -169,7 +171,7 @@
 </style>
 </head>
 <body class="empty">
-<header class="bar">
+<header class="top"><div class="bar">
   <div class="brand"><img src="/favicon.svg" alt=""><span>YouTube <em>Summarizer</em></span></div>
   <p class="tagline">Paste a link. Read the whole video in minutes.</p>
   <form id="form">
@@ -184,7 +186,7 @@
     <button role="radio" data-theme="system" aria-label="System" title="System"><svg class="i"><use href="#i-system"/></svg></button>
   </div>
   <div class="note" id="note" role="status"></div>
-</header>
+</div></header>
 
 <div class="wrap" id="result" hidden>
   <nav class="toc" id="toc" aria-label="Sections"></nav>
@@ -319,7 +321,8 @@ function spyUpdate() {
   const heads = $("summary").querySelectorAll("h2, h3");
   if (!heads.length) return;
   let current = heads[0];
-  for (const h of heads) { if (h.getBoundingClientRect().top > innerHeight * .3) break; current = h; }
+  const line = barH() + (innerHeight - barH()) * .3;
+  for (const h of heads) { if (h.getBoundingClientRect().top > line) break; current = h; }
   highlight(current.id);
 }
 addEventListener("scroll", () => {
@@ -333,13 +336,41 @@ $("toc").onclick = e => {
   const target = document.getElementById(a.hash.slice(1));
   if (!target) return;
   highlight(pinned = target.id);
-  pinnedAt = scrollY;
-  const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-  tocLock = Date.now() + (smooth ? 1500 : 100);  // don't track the headings the jump scrolls past
-  addEventListener("scrollend", () => { tocLock = 0; pinnedAt = scrollY; }, { once: true });
-  target.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
   target.focus({ preventScroll: true });
+  const y = Math.min(scrollY + target.getBoundingClientRect().top - barH() - 28,
+                     document.documentElement.scrollHeight - innerHeight);
+  tocLock = Infinity;  // don't track the headings the jump scrolls past
+  glide(Math.max(0, y), () => { tocLock = 0; pinnedAt = scrollY; });
 };
+
+// Our own eased scroll: browser smooth-scrolling varies (and some browsers make it a jump).
+let glideFrame = 0, glideDone = null;
+function glide(y, done) {
+  stopGlide();
+  const from = scrollY, dist = y - from;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || Math.abs(dist) < 2) { scrollTo(0, y); return done(); }
+  const ms = Math.min(1000, 380 + Math.abs(dist) * .12), t0 = performance.now();
+  glideDone = done;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / ms);
+    scrollTo(0, from + dist * (1 - Math.pow(1 - t, 4)));  // ease-out quart
+    if (t < 1) glideFrame = requestAnimationFrame(step);
+    else { glideFrame = 0; const d = glideDone; glideDone = null; d?.(); }
+  };
+  glideFrame = requestAnimationFrame(step);
+}
+function stopGlide() {
+  if (!glideFrame) return;
+  cancelAnimationFrame(glideFrame);
+  glideFrame = 0;
+  const d = glideDone; glideDone = null; d?.();
+}
+["wheel", "touchstart", "keydown"].forEach(ev => addEventListener(ev, stopGlide, { passive: true }));  // reader takes over
+
+// height of the pinned top bar (0 on the start screen, where it isn't pinned)
+const barH = () => document.body.classList.contains("empty") ? 0 : document.querySelector(".top").offsetHeight;
+new ResizeObserver(() => document.documentElement.style.setProperty("--bar-h", barH() + "px"))
+  .observe(document.querySelector(".top"));
 
 const watchToc = () => { pinned = null; spyUpdate(); };
 
