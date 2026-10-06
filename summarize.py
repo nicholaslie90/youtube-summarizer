@@ -34,6 +34,10 @@ Short verbatim quotes with timestamps (skip if none stand out).
 What a viewer should remember or do."""
 
 
+class Error(Exception):
+    pass
+
+
 def ts(seconds):
     h, rem = divmod(int(seconds), 3600)
     m, s = divmod(rem, 60)
@@ -43,7 +47,7 @@ def ts(seconds):
 def yt_dlp(*args):
     r = subprocess.run(["yt-dlp", *args], capture_output=True, text=True)
     if r.returncode != 0:
-        sys.exit(f"yt-dlp failed:\n{r.stderr.strip()}")
+        raise Error(f"yt-dlp failed:\n{r.stderr.strip()}")
     return r.stdout
 
 
@@ -94,23 +98,33 @@ def fetch(url):
         info = json.loads(info_path.read_text())
         lang, is_auto = pick_caption_lang(info)
         if not lang:
-            sys.exit("This video has no captions (manual or auto-generated); cannot build a transcript.")
+            raise Error("This video has no captions (manual or auto-generated); cannot build a transcript.")
         yt_dlp("--load-info-json", str(info_path), "--skip-download",
                "--write-auto-subs" if is_auto else "--write-subs",
                "--sub-langs", lang, "--sub-format", "json3", "-o", f"{tmp}/sub")
         files = list(Path(tmp).glob("sub*.json3"))
         if not files:
-            sys.exit(f"yt-dlp did not return captions for language '{lang}'.")
+            raise Error(f"yt-dlp did not return captions for language '{lang}'.")
         paragraphs = parse_json3(json.loads(files[0].read_text()))
     return info, lang, is_auto, paragraphs
 
 
-def summarize(info, transcript):
+def header(info, lang, is_auto):
+    return (f"# {info.get('title')}\n\n{info.get('webpage_url')} · {info.get('channel') or info.get('uploader')}"
+            f" · {ts(info.get('duration') or 0)} · captions: {lang}{' (auto-generated)' if is_auto else ''}\n\n")
+
+
+def format_transcript(paragraphs):
+    return "\n\n".join(f"**[{ts(s)}]** {p}" for s, p in paragraphs)
+
+
+def stream_summary(info, transcript, api_key=None):
+    """Yield summary text as Claude writes it. api_key=None -> SDK default credential lookup."""
     import anthropic
 
     meta = (f"Title: {info.get('title')}\nChannel: {info.get('channel') or info.get('uploader')}\n"
             f"Duration: {ts(info.get('duration') or 0)}\nDescription:\n{(info.get('description') or '')[:3000]}")
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key=api_key)
     with client.beta.messages.stream(
         model=MODEL,
         max_tokens=64000,
@@ -122,13 +136,12 @@ def summarize(info, transcript):
                    f"<video_metadata>\n{meta}\n</video_metadata>\n\n<transcript>\n{transcript}\n</transcript>\n\n"
                    "Write the detailed summary in English."}],
     ) as stream:
+        yield from stream.text_stream
         msg = stream.get_final_message()
     if msg.stop_reason == "refusal":
-        sys.exit("Claude declined to summarize this video.")
-    text = "".join(b.text for b in msg.content if b.type == "text")
+        raise Error("Claude declined to summarize this video.")
     if msg.stop_reason == "max_tokens":
-        text += "\n\n_(summary truncated: hit max_tokens)_"
-    return text
+        yield "\n\n_(summary truncated: hit max_tokens)_"
 
 
 def main():
@@ -138,25 +151,34 @@ def main():
     ap.add_argument("--no-summary", action="store_true", help="only fetch the transcript")
     a = ap.parse_args()
 
+    try:
+        run(a)
+    except Error as e:
+        sys.exit(str(e))
+
+
+def run(a):
     print("Fetching captions…", file=sys.stderr)
     info, lang, is_auto, paragraphs = fetch(a.url)
     vid = re.sub(r"[^A-Za-z0-9_-]", "_", info.get("id") or "video")
     out = Path(a.outdir, vid)
     out.mkdir(parents=True, exist_ok=True)
 
-    header = (f"# {info.get('title')}\n\n{info.get('webpage_url')} · {info.get('channel') or info.get('uploader')}"
-              f" · {ts(info.get('duration') or 0)} · captions: {lang}{' (auto-generated)' if is_auto else ''}\n\n")
-    transcript = "\n\n".join(f"**[{ts(s)}]** {p}" for s, p in paragraphs)
-    (out / "transcript.md").write_text(header + transcript + "\n")
+    head = header(info, lang, is_auto)
+    transcript = format_transcript(paragraphs)
+    (out / "transcript.md").write_text(head + transcript + "\n")
     print(f"Transcript: {out / 'transcript.md'}", file=sys.stderr)
 
     if a.no_summary:
         return
     print(f"Summarizing with {MODEL}…", file=sys.stderr)
-    summary = summarize(info, transcript)
-    (out / "summary.md").write_text(header + summary + "\n")
-    print(f"Summary:    {out / 'summary.md'}\n", file=sys.stderr)
-    print(summary)
+    summary = ""
+    for chunk in stream_summary(info, transcript):
+        print(chunk, end="", flush=True)
+        summary += chunk
+    print()
+    (out / "summary.md").write_text(head + summary + "\n")
+    print(f"\nSummary:    {out / 'summary.md'}", file=sys.stderr)
 
 
 if __name__ == "__main__":
