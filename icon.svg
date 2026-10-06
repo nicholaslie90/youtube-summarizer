@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfaf4"/>
+      <stop offset="1" stop-color="#ece4d6"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2432c"/>
+      <stop offset="1" stop-color="#b22a19"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#3a2a1a" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <!-- macOS icon grid: 824px tile inset 100px -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#tile)" filter="url(#shadow)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="185.5" fill="none" stroke="#000" stroke-opacity=".06"/>
+  <!-- play triangle, rounded corners -->
+  <path d="M262 352c0-33 36-54 65-37l222 134c28 17 28 57 0 74L327 657c-29 17-65-4-65-37z" fill="url(#play)"/>
+  <!-- summary lines -->
+  <g stroke="#2b251e" stroke-width="44" stroke-linecap="round">
+    <line x1="640" y1="404" x2="764" y2="404"/>
+    <line x1="640" y1="512" x2="740" y2="512"/>
+    <line x1="640" y1="620" x2="700" y2="620"/>
+  </g>
+</svg>

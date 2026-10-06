@@ -24,12 +24,12 @@ Output Markdown with these sections:
 ## TL;DR
 3-5 sentences.
 ## Key points
-Bulleted, each with a [mm:ss] or [h:mm:ss] timestamp from the transcript.
+Bulleted. Each bullet starts with its [mm:ss] (or [h:mm:ss]) timestamp from the transcript.
 ## Detailed breakdown
-The video section by section, in order. One ### heading per section with its start timestamp.
+The video section by section, in order. One heading per section, written as: ### [mm:ss] Section title
 Cover the arguments, examples, numbers, names and conclusions. Be thorough: someone who reads this should not need to watch the video.
 ## Notable quotes
-Short verbatim quotes with timestamps (skip if none stand out).
+Short verbatim quotes, one bullet each, written as: - "quote" [mm:ss] (omit this section if none stand out).
 ## Takeaways / action items
 What a viewer should remember or do."""
 

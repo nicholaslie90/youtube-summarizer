@@ -13,6 +13,7 @@ ORIGINS = {f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"}
 KEY_RE = re.compile(r"^sk-ant-[A-Za-z0-9_-]{20,}$")
 KEYCHAIN = ["-s", "youtube-summarizer", "-a", "anthropic"]
 PAGE = Path(__file__).with_name("index.html")
+FAVICON = Path(__file__).with_name("favicon.svg")
 videos = {}  # ponytail: unbounded in-memory cache, fine for a personal app; restart clears it
 
 
@@ -46,6 +47,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {"error": "forbidden"})
         if self.path == "/":
             self.send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
+        elif self.path == "/favicon.svg":
+            self.send(200, FAVICON.read_bytes(), "image/svg+xml")
         elif self.path == "/health":
             self.send(200, b"ok", "text/plain")
         elif self.path == "/api/key":
@@ -81,7 +84,7 @@ class Handler(BaseHTTPRequestHandler):
             "channel": info.get("channel") or info.get("uploader"),
             "duration": summarize.ts(info.get("duration") or 0),
             "captions": lang + (" (auto-generated)" if is_auto else ""),
-            "paragraphs": [[int(s), summarize.ts(s), p] for s, p in paragraphs],
+            "thumbnail": info.get("thumbnail"),
             "header": videos[vid][1], "markdown": videos[vid][1] + videos[vid][2],
         })
 

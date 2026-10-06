@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 100 824 824">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfaf4"/>
+      <stop offset="1" stop-color="#ece4d6"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2432c"/>
+      <stop offset="1" stop-color="#b22a19"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#tile)"/>
+  <!-- play triangle, rounded corners -->
+  <path d="M262 352c0-33 36-54 65-37l222 134c28 17 28 57 0 74L327 657c-29 17-65-4-65-37z" fill="url(#play)"/>
+  <!-- summary lines -->
+  <g stroke="#2b251e" stroke-width="44" stroke-linecap="round">
+    <line x1="640" y1="404" x2="764" y2="404"/>
+    <line x1="640" y1="512" x2="740" y2="512"/>
+    <line x1="640" y1="620" x2="700" y2="620"/>
+  </g>
+</svg>

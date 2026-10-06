@@ -5,7 +5,7 @@ Paste a YouTube URL, get the full timestamped transcript and a detailed Claude s
 ## Mac app (local web page)
 
 ```bash
-brew install yt-dlp
+brew install yt-dlp librsvg   # librsvg renders the app icon from icon.svg
 ./install-app.sh        # creates /Applications/YouTube Summarizer.app
 ```
 

@@ -20,4 +20,14 @@ on quit
 	continue quit
 end quit
 EOF
+# App icon from icon.svg (needs: brew install librsvg)
+SET="$(mktemp -d)/icon.iconset"; mkdir "$SET"
+for n in 16 32 128 256 512; do
+	rsvg-convert -w $n -h $n "$DIR/icon.svg" -o "$SET/icon_${n}x${n}.png"
+	rsvg-convert -w $((n*2)) -h $((n*2)) "$DIR/icon.svg" -o "$SET/icon_${n}x${n}@2x.png"
+done
+iconutil -c icns "$SET" -o "$APP/Contents/Resources/applet.icns"
+rm -rf "$(dirname "$SET")"
+codesign --force --sign - "$APP" 2>/dev/null  # resources changed; re-seal the ad-hoc signature
+touch "$APP"
 echo "Installed: $APP"
