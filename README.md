@@ -14,7 +14,7 @@ Open **YouTube Summarizer** from Applications. It starts a server on `127.0.0.1:
 **API key:** copy your Anthropic key (`sk-ant-…`) to the clipboard. The app saves it to the macOS Keychain
 (service `youtube-summarizer`) and reuses it after that. Copying a new key replaces the saved one.
 
-The server keeps running in the background; stop it with `pkill -f youtube-summarizer/app.py`. Logs: `app.log`.
+The app stays in the Dock while the server runs: quit it (⌘Q or Dock → Quit) to stop the server, click its icon to reopen the page. Logs: `app.log`.
 
 ## CLI
 
