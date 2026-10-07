@@ -19,6 +19,19 @@ from the original transcript; if the app was restarted and the transcript is gon
 
 The app stays in the Dock while the server runs: quit it (⌘Q or Dock → Quit) to stop the server, click its icon to reopen the page. Logs: `app.log`.
 
+## Remote access (Cloudflare Access)
+
+`https://youtube-summarizer.nl9.workers.dev` is a Worker (`worker/`) behind Cloudflare Access (members of the personal
+Cloudflare account only). It reaches this Mac through the "Nic Air" tunnel via a Workers VPC service to `127.0.0.1:8765`.
+
+```bash
+./install-remote.sh                        # launchd agents: always-on server + tunnel (token: ~/.cloudflared/nic-air.token)
+(cd worker && npx wrangler deploy)         # after editing the Worker
+```
+
+With the agents installed, launchd restarts the server if the Dock app's Quit stops it. Logs: `com.nic.youtube-summarizer*.log`.
+To stop: `launchctl bootout gui/$UID/com.nic.youtube-summarizer` (and `…-tunnel`).
+
 ## CLI
 
 ```bash

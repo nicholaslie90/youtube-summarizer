@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local web UI for summarize.py. Listens on 127.0.0.1:8765 only."""
 import json
+import os
 import re
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -10,6 +11,9 @@ import summarize
 
 PORT = 8765
 ORIGINS = {f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"}
+# Remote access via the Cloudflare Access-protected Worker (worker/); unset = local only
+if os.environ.get("PUBLIC_ORIGIN"):
+    ORIGINS.add(os.environ["PUBLIC_ORIGIN"])
 KEY_RE = re.compile(r"^sk-ant-[A-Za-z0-9_-]{20,}$")
 KEYCHAIN = ["-s", "youtube-summarizer", "-a", "anthropic"]
 PAGE = Path(__file__).with_name("index.html")

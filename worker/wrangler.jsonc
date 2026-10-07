@@ -1,0 +1,9 @@
+{
+  "name": "youtube-summarizer",
+  "main": "index.js",
+  "compatibility_date": "2026-10-06",
+  "workers_dev": true,
+  "preview_urls": false,
+  // Tunnel "Nic Air" -> 127.0.0.1:8765 on the Mac
+  "vpc_services": [{ "binding": "APP", "service_id": "01a1140a-eece-70e1-815b-e69480791c4f", "remote": true }]
+}
