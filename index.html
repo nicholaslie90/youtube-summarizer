@@ -168,6 +168,20 @@
     content: ""; display: inline-block; width: .5em; height: 1.05em; margin-inline-start: 3px; vertical-align: -.15em;
     background: var(--accent); border-radius: 1px; animation: blink 1s steps(2) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
+  /* PDF: the print dialog's "Save as PDF" (or Share on iOS) */
+  @page { margin: 16mm 14mm; }
+  @media print {
+    :root, :root[data-theme] { color-scheme: light; }
+    body { background: #fff; font-size: 12px; }
+    .top, .toc, .actions, #model { display: none !important; }
+    .wrap { display: block; padding: 0; max-width: none; }
+    .head { grid-template-columns: 180px 1fr; }
+    .thumb { box-shadow: none; }
+    * { animation: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #summary { font-size: 11.5pt; }
+    #summary h2, #summary h3 { break-after: avoid; }
+    #summary li, #summary blockquote { break-inside: avoid; }
+  }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -200,6 +214,7 @@
         <div class="actions">
           <button class="btn" data-act="transcript"><svg class="i"><use href="#i-down"/></svg>Transcript</button>
           <button class="btn" data-act="download" disabled><svg class="i"><use href="#i-down"/></svg>Summary</button>
+          <button class="btn" data-act="pdf" disabled title="Save or share as PDF"><svg class="i"><use href="#i-down"/></svg>PDF</button>
           <button class="btn" data-act="copy" disabled><svg class="i"><use href="#i-copy"/></svg><span>Copy summary</span></button>
         </div>
       </div>
@@ -382,7 +397,7 @@ async function post(path, body, signal) {
 }
 
 function setDone(done) {
-  document.querySelectorAll('[data-act="download"], [data-act="copy"]').forEach(b => b.disabled = !done);
+  document.querySelectorAll('[data-act="download"], [data-act="pdf"], [data-act="copy"]').forEach(b => b.disabled = !done);
 }
 
 $("form").onsubmit = async e => {
@@ -507,6 +522,12 @@ document.addEventListener("click", e => {
   if (!b || !video) return;
   if (b.dataset.act === "transcript") download("transcript", video.markdown);
   if (b.dataset.act === "download") download($("lang").value === "en" ? "summary" : `summary (${$("lang").value})`, video.header + md.summary);
+  if (b.dataset.act === "pdf") {  // the PDF is named after the page title
+    const t = document.title;
+    document.title = `${video.title} - summary`;
+    addEventListener("afterprint", () => document.title = t, { once: true });  // print() doesn't block on iOS
+    print();
+  }
   if (b.dataset.act === "copy") {
     navigator.clipboard.writeText(md.summary);
     b.querySelector("use").setAttribute("href", "#i-check");
