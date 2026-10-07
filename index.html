@@ -239,7 +239,7 @@ const md = { summary: "" };
 const TS = /^(?:\d+:)?\d{1,2}:\d{2}$/;
 const KINDS = ["tl", "key", "detailed", "notable", "takeaway"];
 const clean = text => text.replace(/^\s*<document>\s*/, "").replace(/\s*<\/document>\s*$/, "");
-const OPEN_Q = /^\s*["“„«「『‘]/;
+const OPEN_Q = /^\s*["“„«「『‘]/, CLOSE_Q = /["”»」』’](\s*—[^"”»」』’]*)?\s*$/;
 const PLAY = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.6v6.8L8.4 5z"/></svg>';
 const icon = name => `<svg class="i${name === "spin" ? " spin" : ""}"><use href="#i-${name}"/></svg>`;
 let video = null, keySource = null, loading = false, inflight = null, models = {};  // models: lang -> X-Model label
@@ -303,8 +303,8 @@ function render() {
   frag.querySelectorAll('[data-kind="notable"] li').forEach(li => {  // the design draws its own opening mark
     const texts = [...li.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
     if (texts[0]) texts[0].textContent = texts[0].textContent.replace(OPEN_Q, "");
-    const last = texts.at(-1);
-    if (last) last.textContent = last.textContent.replace(/["”»」』’]\s*$/, "");
+    const last = texts.at(-1);  // the closing mark may be followed by " — Speaker"
+    if (last) last.textContent = last.textContent.replace(CLOSE_Q, "$1");
   });
   frag.querySelectorAll("h2, h3").forEach((h, i) => { h.id = `s${i}-${slug(h.textContent).slice(0, 40)}`; h.tabIndex = -1; });
   $("summary").replaceChildren(frag);
