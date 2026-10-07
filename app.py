@@ -14,22 +14,27 @@ ORIGINS = {f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"}
 # Remote access via the Cloudflare Access-protected Worker (worker/); unset = local only
 if os.environ.get("PUBLIC_ORIGIN"):
     ORIGINS.add(os.environ["PUBLIC_ORIGIN"])
-KEY_RE = re.compile(r"^sk-ant-[A-Za-z0-9_-]{20,}$")
-KEYCHAIN = ["-s", "youtube-summarizer", "-a", "anthropic"]
+# Keychain account -> key pattern. Claude is primary; Gemini is the fallback (summarize.stream_llm).
+KEY_RES = {"anthropic": re.compile(r"^sk-ant-[A-Za-z0-9_-]{20,}$"),
+           "gemini": re.compile(r"^(AIza[A-Za-z0-9_-]{35}|AQ\.[A-Za-z0-9_.-]{40,})$")}
 PAGE = Path(__file__).with_name("index.html")
 FAVICON = Path(__file__).with_name("favicon.svg")
 videos = {}  # ponytail: unbounded in-memory cache, fine for a personal app; restart clears it
 
 
-def api_key():
-    """Key on the clipboard wins (and is saved to Keychain); otherwise use the saved one."""
+def api_keys():
+    """A key on the clipboard is saved to Keychain (replacing that provider's old one); returns all saved keys."""
     clip = subprocess.run(["pbpaste"], capture_output=True, text=True).stdout.strip()
-    if KEY_RE.match(clip):
-        # ponytail: -w puts the key on argv for a moment (visible to local `ps`); fine on a single-user Mac
-        subprocess.run(["security", "add-generic-password", "-U", *KEYCHAIN, "-w", clip], capture_output=True)
-        return clip, "clipboard"
-    r = subprocess.run(["security", "find-generic-password", *KEYCHAIN, "-w"], capture_output=True, text=True)
-    return (r.stdout.strip(), "keychain") if r.returncode == 0 else (None, None)
+    keys = {}
+    for account, key_re in KEY_RES.items():
+        keychain = ["-s", "youtube-summarizer", "-a", account]
+        if key_re.match(clip):
+            # ponytail: -w puts the key on argv for a moment (visible to local `ps`); fine on a single-user Mac
+            subprocess.run(["security", "add-generic-password", "-U", *keychain, "-w", clip], capture_output=True)
+        r = subprocess.run(["security", "find-generic-password", *keychain, "-w"], capture_output=True, text=True)
+        if r.returncode == 0:
+            keys[account] = r.stdout.strip()
+    return keys
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -58,7 +63,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/languages":
             self.send(200, summarize.LANGUAGES)
         elif self.path == "/api/key":
-            self.send(200, {"source": api_key()[1]})
+            self.send(200, {"source": "+".join(api_keys()) or None})
         else:
             self.send(404, {"error": "not found"})
 
@@ -102,22 +107,30 @@ class Handler(BaseHTTPRequestHandler):
         if vid not in videos:  # e.g. app restarted; the page falls back to /api/translate
             return self.send(404, {"error": "Transcript is no longer loaded. Summarize the video again."})
         info, _, transcript = videos[vid]
-        self.stream(lambda key: summarize.stream_summary(info, transcript, key, summarize.LANGUAGES[lang]))
+        self.stream(lambda keys: summarize.stream_summary(info, transcript, keys, summarize.LANGUAGES[lang]))
 
     def translate(self, markdown, lang):
         if lang not in summarize.LANGUAGES or not markdown.strip():
             return self.send(400, {"error": "Nothing to translate."})
-        self.stream(lambda key: summarize.stream_translation(markdown, key, summarize.LANGUAGES[lang]))
+        self.stream(lambda keys: summarize.stream_translation(markdown, keys, summarize.LANGUAGES[lang]))
 
     def stream(self, make):
-        key, _ = api_key()
-        if not key:
-            return self.send(401, {"error": "No API key. Copy your Anthropic API key (sk-ant-…) to the clipboard, then try again."})
+        keys = api_keys()
+        if not keys:
+            return self.send(401, {"error": "No API key. Copy your Anthropic (sk-ant-…) or Gemini API key to the clipboard, then try again."})
+        chunks = make(keys)
+        try:
+            model, err = next(chunks, ""), None  # waits for the first text, so the model (or fallback) is known
+        except Exception as e:
+            model, err = "", e
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("X-Model", re.sub(r"[^\w.:() -]", "", model))  # shown under the title; API text, so no CR/LF
         self.end_headers()  # no Content-Length: body streams until the connection closes
         try:
-            for chunk in make(key):
+            if err:
+                raise err
+            for chunk in chunks:
                 self.wfile.write(chunk.encode())
                 self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):

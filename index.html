@@ -114,6 +114,7 @@
                 font: 500 12px/1 var(--mono); padding: 5px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; }
   .head h1 { margin: 0 0 10px; font: 500 clamp(1.75rem, 3.4vw, 2.45rem)/1.12 var(--serif); letter-spacing: -.02em; text-wrap: balance; }
   .by { color: var(--ink-2); margin: 0 0 18px; }
+  #model.fallback { color: var(--accent); }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .reveal { animation: reveal .9s var(--ease) both; }
   .reveal .thumb { animation: unveil 1.1s var(--ease) both; }
@@ -195,7 +196,7 @@
       <a class="thumb" id="thumb" target="_blank" rel="noopener"><span id="dur"></span></a>
       <div>
         <h1 id="title"></h1>
-        <p class="by" id="by"></p>
+        <p class="by"><span id="by"></span><span id="model"></span></p>
         <div class="actions">
           <button class="btn" data-act="transcript"><svg class="i"><use href="#i-down"/></svg>Transcript</button>
           <button class="btn" data-act="download" disabled><svg class="i"><use href="#i-down"/></svg>Summary</button>
@@ -229,7 +230,7 @@ const clean = text => text.replace(/^\s*<document>\s*/, "").replace(/\s*<\/docum
 const OPEN_Q = /^\s*["“„«「『‘]/;
 const PLAY = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 1.6v6.8L8.4 5z"/></svg>';
 const icon = name => `<svg class="i${name === "spin" ? " spin" : ""}"><use href="#i-${name}"/></svg>`;
-let video = null, keySource = null, loading = false, inflight = null;
+let video = null, keySource = null, loading = false, inflight = null, models = {};  // models: lang -> X-Model label
 let cache = {};  // lang -> finished summary for the current video
 
 function note(text, kind = "") {
@@ -243,7 +244,7 @@ function note(text, kind = "") {
 async function checkKey() {
   keySource = (await (await fetch("/api/key")).json()).source;
   if (!keySource && !$("note").classList.contains("error"))
-    note("No API key yet. Copy your Anthropic key (sk-ant-…) to the clipboard and it's picked up automatically.", "key");
+    note("No API key yet. Copy your Anthropic key (sk-ant-…) or a Gemini key (fallback) to the clipboard and it's picked up automatically.", "key");
   else if (keySource && $("note").textContent.startsWith("No API key")) note("");
 }
 
@@ -392,7 +393,7 @@ $("form").onsubmit = async e => {
   try {
     note("Fetching captions…", "busy");
     video = await (await post("/api/transcript", { url: $("url").value.trim() })).json();
-    cache = {};
+    cache = {}; models = {};
     document.body.classList.remove("empty");
     $("title").textContent = video.title;
     $("by").textContent = `${video.channel} · captions: ${video.captions}`;
@@ -421,6 +422,7 @@ async function summarize(lang) {
   const name = langName(lang);
   Object.assign($("summary"), { lang, dir: lang === "ar" ? "rtl" : "ltr" });
   setDone(false);
+  showModel(models[lang]);
   if (cache[lang]) {
     md.summary = cache[lang];
     render(); watchToc(); setDone(true); note("");
@@ -442,6 +444,7 @@ async function summarize(lang) {
       r = await post("/api/translate", { markdown: source, lang }, ctl.signal);
     }
     checkKey();
+    showModel(models[lang] = r.headers.get("X-Model"));
     $("summary").classList.add("writing");
     const reader = r.body.getReader(), dec = new TextDecoder();
     let queued = false;
@@ -464,6 +467,11 @@ async function summarize(lang) {
     note(err.message, "error");
     checkKey();
   }
+}
+
+function showModel(label) {
+  $("model").textContent = label ? ` · written by ${label}` : "";
+  $("model").classList.toggle("fallback", !!label?.includes("(fallback"));
 }
 
 const LABELS = { id: "Bahasa Indonesia", ms: "Bahasa Melayu" };  // Intl names these just "Indonesia" / "Melayu"

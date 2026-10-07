@@ -14,6 +14,10 @@ Open **YouTube Summarizer** from Applications. It starts a server on `127.0.0.1:
 **API key:** copy your Anthropic key (`sk-ant-…`) to the clipboard. The app saves it to the macOS Keychain
 (service `youtube-summarizer`) and reuses it after that. Copying a new key replaces the saved one.
 
+A Gemini API key copied the same way is saved too and used as a **fallback**: if Claude fails before writing
+(bad key, out of credit, overloaded), `gemini-3.5-flash` writes the summary instead. The line under the title shows
+which model wrote it (red when it's the fallback). CLI: set `GEMINI_API_KEY`.
+
 Pick the summary language from the menu next to **Summarize** (20 languages). Switching language rewrites the summary
 from the original transcript; if the app was restarted and the transcript is gone, it translates an existing summary instead.
 
