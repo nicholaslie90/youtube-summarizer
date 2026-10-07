@@ -168,22 +168,19 @@
     content: ""; display: inline-block; width: .5em; height: 1.05em; margin-inline-start: 3px; vertical-align: -.15em;
     background: var(--accent); border-radius: 1px; animation: blink 1s steps(2) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
-  /* PDF: the print dialog's "Save as PDF" (or Share on iOS) */
-  @page { margin: 16mm 14mm; }
-  @media print {
-    :root, :root[data-theme] { color-scheme: light; }
-    body { background: #fff; font-size: 12px; }
-    .top, .toc, .actions, #model { display: none !important; }
-    .wrap { display: block; padding: 0; max-width: none; }
-    .head { grid-template-columns: 180px 1fr; }
-    .thumb { box-shadow: none; }
-    * { animation: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #summary { font-size: 11.5pt; }
-    #summary h2, #summary h3 { break-after: avoid; }
-    #summary li, #summary blockquote { break-inside: avoid; }
-  }
+  /* PDF: the print dialog's "Save as PDF" (or Share on iOS). html.pdf is set around printing so the
+     page can be measured and printed as one continuous sheet (see beforeprint). */
+  .pdf, .pdf[data-theme] { color-scheme: light; }
+  .pdf body { background: #fff; font-size: 12px; width: 210mm; padding: 16mm 14mm; }
+  .pdf .top, .pdf .toc, .pdf .actions, .pdf #model { display: none !important; }
+  .pdf .wrap { display: block; padding: 0; max-width: none; }
+  .pdf .head { grid-template-columns: 180px 1fr; }
+  .pdf .thumb { box-shadow: none; }
+  .pdf * { animation: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pdf #summary { font-size: 11.5pt; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+<style id="page-size"></style>
 </head>
 <body class="empty">
 <header class="top"><div class="bar">
@@ -516,6 +513,13 @@ function download(name, text) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+
+// ponytail: one page as tall as the content; Chrome caps PDF pages near 200in (~19,000px), past that it scales down
+addEventListener("beforeprint", () => {
+  document.documentElement.classList.add("pdf");
+  $("page-size").textContent = `@page { size: 210mm ${Math.ceil(document.body.offsetHeight) + 2}px; margin: 0; }`;
+});
+addEventListener("afterprint", () => document.documentElement.classList.remove("pdf"));
 
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]");
