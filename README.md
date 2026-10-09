@@ -23,6 +23,11 @@ from the original transcript; if the app was restarted and the transcript is gon
 
 The app stays in the Dock while the server runs: quit it (⌘Q or Dock → Quit) to stop the server, click its icon to reopen the page. Logs: `app.log`.
 
+## Chrome extension
+
+One click on the toolbar button opens the app next to your YouTube tab and summarizes it (the app must be running).
+Install: `chrome://extensions` → Developer mode → **Load unpacked** → pick `extension/`. Pin it from the puzzle-piece menu.
+
 ## Remote access (Cloudflare Access)
 
 `https://youtube-summarizer.nl9.workers.dev` is a Worker (`worker/`) behind Cloudflare Access (members of the personal

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Summarizer",
+  "version": "1.0",
+  "description": "Summarize the current YouTube tab in one click.",
+  "permissions": ["activeTab"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Summarize this video" },
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+}
