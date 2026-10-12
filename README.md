@@ -23,10 +23,11 @@ from the original transcript; if the app was restarted and the transcript is gon
 
 The app stays in the Dock while the server runs: quit it (⌘Q or Dock → Quit) to stop the server, click its icon to reopen the page. Logs: `app.log`.
 
-## Chrome extension
+## Browser extension (Chrome & Firefox)
 
 One click on the toolbar button opens the app next to your YouTube tab and summarizes it (the app must be running).
 Install: `chrome://extensions` → Developer mode → **Load unpacked** → pick `extension/`. Pin it from the puzzle-piece menu.
+Firefox: `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → pick `extension/manifest.json`. Temporary add-ons are removed when Firefox restarts. To keep it installed, sign it on AMO as unlisted (`npx web-ext sign --channel=unlisted`) or use Developer Edition with `xpinstall.signatures.required=false`.
 
 ## Remote access (Cloudflare Access)
 
