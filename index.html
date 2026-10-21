@@ -403,8 +403,9 @@ $("form").onsubmit = async e => {
   $("go").disabled = loading = true;
   setDone(false);
   try {
-    note("Fetching captions…", "busy");
+    note("Fetching captions (no captions? transcribing locally, which can take a while)…", "busy");
     video = await (await post("/api/transcript", { url: $("url").value.trim() })).json();
+    if (video.error) throw new Error(video.error);
     cache = {}; models = {};
     document.body.classList.remove("empty");
     $("title").textContent = video.title;

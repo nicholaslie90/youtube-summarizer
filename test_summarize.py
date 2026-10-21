@@ -1,3 +1,8 @@
+import json
+import subprocess
+
+import pytest
+
 import summarize
 from summarize import parse_json3, pick_caption_lang, ts
 
@@ -68,3 +73,23 @@ def test_stream_gemini_retries_overload():
 
 if __name__ == "__main__":
     test_ts(); test_pick_caption_lang(); test_parse_json3(); test_stream_llm_fallback(); test_stream_gemini_retries_overload(); print("ok")
+
+
+def test_transcribe(tmp_path, monkeypatch):
+    info = tmp_path / "info.json"
+    info.write_text('{"live_status": "was_live"}')
+    model = tmp_path / "model.bin"
+    model.write_text("")
+    monkeypatch.setattr(summarize, "WHISPER_MODEL", model)
+    monkeypatch.setattr(summarize, "VAD_MODEL", model)
+    monkeypatch.setattr(summarize, "yt_dlp", lambda *a: "")
+    segs = [{"offsets": {"from": t * 1000}, "text": f" s{t}."} for t in range(0, 130, 10)]
+    def whisper(cmd, **kw):
+        (tmp_path / "whisper.json").write_text(json.dumps({"result": {"language": "id"}, "transcription": segs}))
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+    monkeypatch.setattr(summarize.subprocess, "run", whisper)
+    lang, paras = summarize.transcribe(info, str(tmp_path))
+    assert lang == "id (transcribed locally)" and [s for s, _ in paras] == [0, 60, 120]
+    info.write_text('{"live_status": "is_live"}')
+    with pytest.raises(summarize.Error):
+        summarize.transcribe(info, str(tmp_path))

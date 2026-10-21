@@ -5,7 +5,9 @@ Paste a YouTube URL, get the full timestamped transcript and a detailed Claude s
 ## Mac app (local web page)
 
 ```bash
-brew install yt-dlp librsvg   # librsvg renders the app icon from icon.svg
+brew install yt-dlp librsvg whisper-cpp   # librsvg renders the app icon; whisper-cpp transcribes videos without captions
+curl -fL --create-dirs -o ~/.cache/whisper/ggml-large-v3.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin  # 3 GB
+curl -fL -o ~/.cache/whisper/ggml-silero-v5.1.2.bin https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin  # voice detection
 ./install-app.sh        # creates /Applications/YouTube Summarizer.app
 ```
 
@@ -50,4 +52,5 @@ export ANTHROPIC_API_KEY=...
 .venv/bin/python summarize.py "https://www.youtube.com/watch?v=VIDEO_ID"   # --no-summary for transcript only, -l id for Indonesian, etc.
 ```
 
-Writes `out/<video_id>/transcript.md` and `summary.md`. Videos with no captions are rejected.
+Writes `out/<video_id>/transcript.md` and `summary.md`. Videos with no captions are transcribed locally with whisper.cpp (`large-v3`, language auto-detected); on an M2 this
+takes a good fraction of the video's length. Live streams still in progress are rejected.

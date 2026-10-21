@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -86,20 +87,41 @@ class Handler(BaseHTTPRequestHandler):
     def transcript(self, url):
         if not re.match(r"^https?://", url):
             return self.send(400, {"error": "Paste a full video URL (https://…)."})
-        try:
-            info, lang, is_auto, paragraphs = summarize.fetch(url)
-        except summarize.Error as e:
-            return self.send(422, {"error": str(e)})
+        out = {}
+
+        def work():
+            try:
+                out["video"] = summarize.fetch(url)
+            except Exception as e:
+                out["error"] = str(e) if isinstance(e, summarize.Error) else f"Unexpected error: {e!r}"
+        job = threading.Thread(target=work)
+        job.start()
+        # Local transcription can take many minutes; whitespace (valid before JSON) keeps proxies such as
+        # Cloudflare (~100 s without bytes) from dropping the request, so errors come back as 200 + {"error"}.
+        # shortcut: if the tab closes, the job still runs to the end; fine for one user
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        while job.is_alive():
+            job.join(15)
+            try:
+                self.wfile.write(b" ")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
+        if "error" in out:
+            return self.wfile.write(json.dumps({"error": out["error"]}).encode())
+        info, lang, is_auto, paragraphs = out["video"]
         vid = info.get("id") or ""
         videos[vid] = (info, summarize.header(info, lang, is_auto), summarize.format_transcript(paragraphs))
-        self.send(200, {
+        self.wfile.write(json.dumps({
             "id": vid, "title": info.get("title"), "url": info.get("webpage_url"),
             "channel": info.get("channel") or info.get("uploader"),
             "duration": summarize.ts(info.get("duration") or 0),
             "captions": lang + (" (auto-generated)" if is_auto else ""),
             "thumbnail": info.get("thumbnail"),
             "header": videos[vid][1], "markdown": videos[vid][1] + videos[vid][2],
-        })
+        }).encode())
 
     def summary(self, vid, lang):
         if lang not in summarize.LANGUAGES:
